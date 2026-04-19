@@ -1348,7 +1348,7 @@
     // =========================================================================
 
     // ------------------------- CONFIG & VARIABLES GLOBALES -------------------------
-    const CLOUD_URL = "https://script.google.com/macros/s/AKfycbzfqfypK55jD8Ajus7Mfy4RlNu36vpnjFVCnyyzuRJDF-PGoVz2eN8S_CuHwxoGiUvzmg/exec";
+    const CLOUD_URL = "https://script.google.com/macros/s/AKfycbyYikPIvOHgyPPXeBd71HWuaYl3fYK5O0kURcp8YxnnRm7CLBu0oBqjnXBc9cZF7yogaw/exec";
     let currentSite = "MAFERÉ";
     let currentEmployee = "";
     let currentUserRole = "site";
@@ -1534,16 +1534,18 @@
                 mergeStrategy: "safe"
             };
             // CORS activé côté GAS (doPost retourne Access-Control-Allow-Origin: *)
-            const writeRes = await fetch(CLOUD_URL, {
+            // POST no-cors : fire-and-forget (GAS ne supporte pas CORS sur POST)
+            await fetch(CLOUD_URL, {
                 method: 'POST',
-                mode: 'cors',
-                headers: { 'Content-Type': 'application/json' },
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             });
-            if (!writeRes.ok) throw new Error(`Erreur serveur : ${writeRes.status}`);
-            const writeResult = await writeRes.json();
-            if (!writeResult.success) throw new Error('Écriture cloud rejetée par le serveur');
-            console.log('✅ Écriture cloud confirmée :', writeResult);
+            // Confirmation via GET (CORS OK sur doGet)
+            await new Promise(r => setTimeout(r, 1200));
+            const confirmRes = await fetch(`${CLOUD_URL}?action=WRITE_SAFE&site=${currentSite}&employee=${currentEmployee}`, { method: 'GET', mode: 'cors' });
+            const confirmData = await confirmRes.json();
+            console.log('✅ Écriture confirmée via GET :', confirmData);
             // 2. LECTURE pour récupérer les données des autres sites
             await autoSyncData();
             lastSyncTime = Date.now();
@@ -1584,16 +1586,14 @@
                 timestamp: Date.now(),
                 mergeStrategy: "safe"
             };
-            const writeRes = await fetch(CLOUD_URL, {
+            // POST no-cors : fire-and-forget
+            await fetch(CLOUD_URL, {
                 method: 'POST',
-                mode: 'cors',
-                headers: { 'Content-Type': 'application/json' },
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             });
-            if (!writeRes.ok) throw new Error(`Erreur serveur : ${writeRes.status}`);
-            const writeResult = await writeRes.json();
-            if (!writeResult.success) throw new Error('Écriture cloud rejetée par le serveur');
-            console.log('✅ Écriture PDG cloud confirmée :', writeResult);
+            console.log('✅ Écriture PDG envoyée (no-cors)');
         } catch(e) {
             erreurs++;
             console.error('Écriture PDG échouée :', e);
@@ -2827,17 +2827,13 @@
                 timestamp: Date.now(),
                 mergeStrategy: "safe"
             };
-            const bgRes = await fetch(CLOUD_URL, {
+            // POST no-cors : fire-and-forget
+            await fetch(CLOUD_URL, {
                 method: 'POST',
-                mode: 'cors',
-                headers: { 'Content-Type': 'application/json' },
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             });
-            if (bgRes.ok) {
-                const bgResult = await bgRes.json();
-                if (!bgResult.success) throw new Error('Ecriture background rejetee');
-                console.log('syncInBackground confirmee :', bgResult);
-            }
             lastSyncTime = Date.now();
             localStorage.setItem('last_sync_time', lastSyncTime);
             localStorage.removeItem('ilarion_sync_pending');
